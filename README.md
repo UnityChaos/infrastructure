@@ -46,6 +46,6 @@ Currently this repository contains the following modules:
 
 |      Name      | Provider |      Description      |                     Usage                     |
 | -------------- | -------- | --------------------- | -------------------------------------------- |
-| `Osmosis Node` | DO       | Setup osmosis node(s) | [link](./modules/digital-ocean/osmosis-node) |
+| `Cosmos-SDK Node` | DO       | Setup Cosmos-SDK node(s) | [link](./modules/digital-ocean/cosmos-sdk-node) |
 
 Examples on how to use the modules can be found in the [examples](./examples/) folder.

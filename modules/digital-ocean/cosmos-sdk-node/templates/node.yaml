@@ -1,0 +1,65 @@
+#cloud-config
+users:
+  - name: ${username}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_authorized_key}
+
+package_update: true
+package_upgrade: true
+packages:
+  - curl 
+  - build-essential 
+  - jq
+  - procps
+  - file
+  - git 
+  - wget 
+  - liblz4-tool 
+  - aria2 
+  - make 
+
+write_files:
+- path: /run/node/scripts/install-daemon.sh
+  content: |
+    #!/bin/bash
+    curl https://raw.githubusercontent.com/canha/golang-tools-install-script/master/goinstall.sh | bash
+
+    export GOROOT=$HOME/.go
+    export PATH=$GOROOT/bin:$PATH
+    export GOPATH=$HOME/go
+    export PATH=$GOPATH/bin:$PATH
+
+    git clone ${git_repo} $HOME/node
+    cd $HOME/node
+    git checkout ${software_version}
+    make install
+    
+    ${daemon_name} config chain-id ${chain_id}
+    ${daemon_name} config keyring-backend test
+
+    #TODO change this to allow for other initial states (mainnet, fork, speicified genesis, etc)
+
+    ${daemon_name} init ${moniker} --chain-id=${chain_id}
+    ${daemon_name} keys add validator
+    ${daemon_name} add-genesis-account validator 1000000000000${denom} --keyring-backend=test
+    
+
+    #TODO remove once this bug is fixed in standard Osmosis versions
+    jq '.app_state.poolincentives.distr_info = {"total_weight": "1000","records": [{"gauge_id": "0","weight": "1000"}]}' ${node_home}/config/genesis.json > genesis.json.tmp && mv genesis.json.tmp ${node_home}/config/genesis.json
+    
+    #TODO Ideally this should be turned into a --default-denom flag on the init command of the Cosmos-SDK
+    sed -i "s/stake/${denom}/g" ${node_home}/config/genesis.json
+    
+    ${daemon_name} gentx validator 1000000000000${denom} --chain-id=${chain_id} --commission-max-change-rate=0.05 --commission-max-rate=1.0 --commission-max-change-rate=0.01 --keyring-backend=test
+    ${daemon_name} collect-gentxs
+
+    echo "chain can now be started with ${daemon_name} start"
+
+  permissions: '0755'
+
+runcmd:
+  - cp -R /run/node/* /home/${username}/
+  - chown ${username}:${username} -R /home/${username}/
+  - sudo -u ${username} /home/${username}/scripts/install-daemon.sh

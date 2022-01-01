@@ -17,5 +17,5 @@ output:
 
 key:
 	rm -f key
-	terraform output --raw osmosis_nodes_private_key > key
+	terraform output --raw nodes_private_key > key
 	chmod 600 key
